@@ -1,0 +1,180 @@
+﻿
+@model PagedList.IPagedList<DapperMVC.Models.Employee>
+
+@using PagedList.Mvc
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <title>AllEmployee</title>
+    <style>
+        li a {
+            color: #0d6efd;
+            text-decoration: none;
+            padding: 10px;
+            border: 1px solid #0d6efd;
+        }
+        #pageSizeSelector {
+            width: 20px;
+            position: relative;
+        }
+       
+
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-10 ">
+                <button type="button" class="btn btn-light border">@Html.ActionLink("Delete Employee", "AllDeleteData")</button>
+                <button type="button" class="btn btn-light border">@Html.ActionLink("Active Employee", "AllEmployee")</button>
+
+                <button type="button" class="btn btn-light border" style="float: right;">@Html.ActionLink("Download", "ExcelPrintActiveEmployee")</button>
+                <button type="button" class="btn btn-light border" style="float: right;" onclick="printTable()">Print</button>
+
+                <div style="margin: 20px 0; position:relative">
+                    <label for="pageSizeSelector">Items Per Page: <span id="selectedValueDisplay">  @ViewBag.PageSize</span></label>
+                    <select id="pageSizeSelector" onchange="changePageSize()">
+                        <option value="" class="selectedValueDisplay" selected> </option>
+                        <option value="2" class="selectedValueDisplay">2</option>
+                        <option value="5" class="selectedValueDisplay">5</option>
+                        <option value="10" class="selectedValueDisplay">10</option>
+                    </select>
+
+                </div>
+                <input type="text" class="form-control" id="filter" style="width:20%; margin:20px,0; float:right" placeholder="Find The Name ">
+                <button type="button" class="btn btn-light border">@Html.ActionLink("Insert Employee", "InsertEmployee")</button>
+                <table class="table table-striped border my-4" id="myTable">
+                    <thead>
+                        <tr>
+                            <th scope="col">Id</th>
+                            <th scope="col" id="sortButton">Name</th>
+                            <th scope="col" id="sortButton1">Email</th>
+                            <th scope="col" id="sortButton2">Phone</th>
+                            <th scope="col" id="sortButton3">Gender</th>
+                            <th scope="col" id="sortButton4">Skill</th>
+                            <th scope="col">Edit</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var emp in Model)
+                        {
+                            <tr>
+                                <th scope="row">@emp.Id</th>
+                                <td>@emp.Name</td>
+                                <td>@emp.Email</td>
+                                <td>@emp.Phone</td>
+                                <td>@emp.Gender</td>
+                                <td>@emp.Skill</td>
+                                <td>@Html.ActionLink("Update", "UpdateView", new { id = emp.Id }) || @Html.ActionLink("Delete", "Delete", new { id = emp.Id })</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div class="pagination-container pagination justify-content-center">
+
+                    @Html.PagedListPager(Model, page => Url.Action("AllEmployee", new { page, pageSize = ViewBag.PageSize }))
+                </div>
+
+
+
+                <div style="margin-left:190px">
+                    @Html.ActionLink("GO TO HOME PAGE", "Index")
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script type="text/javascript">
+      $(document).ready(function () {
+        var sortOrder = 'asc';
+
+        $('#sortButton, #sortButton1, #sortButton2, #sortButton3, #sortButton4').click(function () {
+            var textContent = $(this).text();
+            sortByName(textContent);
+        });
+        function sortByName(value) {
+            var sortName = value;
+            sortOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+
+            var currentPageData = JSON.parse(JSON.stringify(@Html.Raw(Json.Encode(Model))));
+            currentPageData = currentPageData.sort(function (a, b) {
+                var aValue = a[sortName].toLowerCase();
+                var bValue = b[sortName].toLowerCase();
+                return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+            });
+
+            updateTable(currentPageData);
+        }
+
+        function updateTable(data) {
+            var tbody = $('#myTable tbody');
+            tbody.empty();
+            $.each(data, function (index, emp) {
+                var row = $('<tr>').append(
+                    $('<td>').text(emp.Id),
+                    $('<td>').text(emp.Name),
+                    $('<td>').text(emp.Email),
+                    $('<td>').text(emp.Phone),
+                    $('<td>').text(emp.Gender),
+                    $('<td>').text(emp.Skill),
+                    $('<td>').html('@Html.ActionLink("Update", "UpdateView", new { id = "EMP_ID" })'.replace('EMP_ID', emp.Id) + ' || ' + '@Html.ActionLink("Delete", "Delete", new { id = "EMP_ID" })'.replace('EMP_ID', emp.Id))
+                );
+                tbody.append(row);
+            });
+        }
+
+      });
+
+        function printTable() {
+            var printWindow = window.open('', '_blank');
+            printWindow.document.write('<html><head><title>Print</title>');
+            printWindow.document.write('</head><body>');
+            printWindow.document.write('<style>table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #dddddd; text-align: left; padding: 8px; }</style>');
+            var tableClone = document.getElementById('myTable').cloneNode(true);
+            var editColumnIndex = Array.from(tableClone.rows[0].cells).findIndex(cell => cell.textContent === 'Edit');
+            if (editColumnIndex !== -1) {
+                for (var i = 0; i < tableClone.rows.length; i++) {
+                    tableClone.rows[i].deleteCell(editColumnIndex);
+                }
+            }
+            printWindow.document.write(tableClone.outerHTML);
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            printWindow.print();
+        }
+        document.addEventListener('DOMContentLoaded', function () {
+            var searchInput = document.getElementById('filter');
+            var table = document.getElementById('myTable');
+            var rows = table.getElementsByTagName('tr');
+
+            searchInput.addEventListener('input', function () {
+                var filter = searchInput.value.toLowerCase();
+
+                for (var i = 1; i < rows.length; i++) {
+                    var row = rows[i];
+                    var text = row.textContent.toLowerCase();
+
+                    row.style.display = text.indexOf(filter) > -1 ? '' : 'none';
+                }
+            });
+        });
+
+       function changePageSize(event) {
+           var selectedPageSize = $("#pageSizeSelector").val();
+           //event.preventDefault();
+           console.log(selectedPageSize);
+           document.getElementById('selectedValueDisplay').innerHTML = "select value:" + selectedPageSize;
+              var newUrl = '@Url.Action("AllEmployee", "Employee", new { page = Model.PageNumber })';
+              newUrl += '&pageSize=' + selectedPageSize;
+
+             window.location.href = newUrl;
+
+          // $("#pageSizeSelector").val(selectedPageSize);
+        }
+    </script>
+</body>
+</html>
